@@ -136,7 +136,7 @@ class RoleSelectView(discord.ui.View):
                     c_btn.callback = make_choice
                     solo_view.add_item(c_btn)
 
-                await interaction.response.send_message(scene.text, view=solo_view, ephemeral=True)
+                await interaction.response.send_message(scene.get_text_for_role(target_role), view=solo_view, ephemeral=True)
 
             btn.callback = open_solo_menu
             view.add_item(btn)
@@ -160,20 +160,18 @@ class RoleSelectView(discord.ui.View):
         if choice.sets_flag:
             session.flags.append(choice.sets_flag)
 
-        await self.manager.advance_node(self.session_id, role_id, choice.next_scene, self.story)
+        # Synchronize all players to the next scene (MVP logic)
+        for r_id in session.current_node_states.keys():
+            session.current_node_states[r_id] = choice.next_scene
 
-        # Check convergence
-        if self.manager.is_convergence_waiting(self.session_id, choice.next_scene):
-            # Tell user waiting
-            pass
+        await self.manager._persist_session(session)
+
+        next_scene = self.story.get_scene(choice.next_scene)
+        if not next_scene or next_scene.is_ending:
+            await channel.send("🏁 انتهت القصة!")
+            self.manager.end_session(self.session_id)
         else:
-            # Proceed all
-            # Hacky sync logic for MVP: just advance everyone
-            for r_id in session.current_node_states.keys():
-                if r_id != role_id:
-                    session.current_node_states[r_id] = choice.next_scene
-
-            await self.manager._persist_session(session)
+            await asyncio.sleep(2)
             self.bot.loop.create_task(self.run_turn(channel))
 
     async def handle_group_decision(self, channel, scene, session):
