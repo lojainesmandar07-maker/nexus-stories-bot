@@ -20,6 +20,8 @@ class MultiplayerSession:
     players: Dict[str, str] # discord_id -> role_id
     current_node_states: Dict[str, str] # role_id -> current_node_id
     flags: List[str]
+    host_id: str = ""
+    channel_id: int = 0
 
 @dataclass
 class Choice:

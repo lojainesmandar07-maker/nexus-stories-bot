@@ -1,7 +1,8 @@
 import asyncio
 import random
 import json
-from typing import Dict, List, Optional
+import time
+from typing import Dict, List, Optional, Set
 import discord
 from engine.models import MultiplayerSession, Story, Role, Vote
 from core.db import save_multiplayer_session, load_multiplayer_session
@@ -17,20 +18,72 @@ class MultiplayerManager:
         self.channel_to_session: Dict[int, str] = {}
         # Wait locks for synchronization
         self.wait_locks: Dict[str, asyncio.Event] = {}
+        # Track sessions currently resolving to prevent race conditions
+        self.resolving_sessions = set()
+        # Track last activity timestamp per session to clean up idle ones (session_id -> epoch timestamp)
+        self.session_last_activity: Dict[str, float] = {}
+        # Cleanup background task
+        self.cleanup_task: Optional[asyncio.Task] = None
+
+    def update_activity(self, session_id: str):
+        self.session_last_activity[session_id] = time.time()
+
+    async def _cleanup_loop(self):
+        while True:
+            await asyncio.sleep(600)  # Check every 10 minutes
+            try:
+                now = time.time()
+                idle_sessions = []
+                # Clean sessions idle for more than 1 hour (3600 seconds)
+                for s_id, last_act in list(self.session_last_activity.items()):
+                    if now - last_act > 3600.0:
+                        idle_sessions.append(s_id)
+
+                for s_id in idle_sessions:
+                    session = self.active_sessions.get(s_id)
+                    if session:
+                        print(f"[Multiplayer Cleanup] Session {s_id} is idle. Ending session.")
+                        # Attempt to notify channel
+                        try:
+                            channel = self.bot.get_channel(session.channel_id)
+                            if channel:
+                                await channel.send("⚠️ تم إنهاء هذه الجلسة التفاعلية تلقائياً بسبب عدم النشاط لأكثر من ساعة.")
+                        except Exception:
+                            pass
+                        self.end_session(s_id)
+                    else:
+                        if s_id in self.session_last_activity:
+                            del self.session_last_activity[s_id]
+            except Exception as e:
+                print(f"Error in multiplayer session cleanup: {e}")
 
     def create_session(self, channel_id: int, story_id: str, host_id: str) -> str:
-        session_id = f"sess_{channel_id}_{random.randint(1000, 9999)}"
+        session_id = f"sess_{channel_id}_{random.randint(100000, 999999)}"
         session = MultiplayerSession(
             session_id=session_id,
             story_id=story_id,
             status="lobby",
             players={},
             current_node_states={},
-            flags=[]
+            flags=[],
+            host_id=host_id,
+            channel_id=channel_id
         )
         self.active_sessions[session_id] = session
         self.channel_to_session[channel_id] = session_id
         self.session_votes[session_id] = {}
+        
+        self.update_activity(session_id)
+        
+        # Start cleanup task if not already started
+        if not self.cleanup_task:
+            try:
+                self.cleanup_task = asyncio.create_task(self._cleanup_loop())
+            except Exception as e:
+                print(f"Failed to start cleanup loop task: {e}")
+                
+        # Persist session in DB initially
+        asyncio.create_task(self._persist_session(session))
         return session_id
 
     def get_session_by_channel(self, channel_id: int) -> Optional[MultiplayerSession]:
@@ -54,6 +107,7 @@ class MultiplayerManager:
             del session.players[user_id]
 
         session.players[user_id] = role_id
+        self.update_activity(session_id)
         return True
 
     def remove_player(self, session_id: str, user_id: str) -> bool:
@@ -62,6 +116,7 @@ class MultiplayerManager:
             return False
         if user_id in session.players:
             del session.players[user_id]
+            self.update_activity(session_id)
             return True
         return False
 
@@ -90,6 +145,7 @@ class MultiplayerManager:
         for role_id in story.roles.keys():
             session.current_node_states[role_id] = story.start_scene
 
+        self.update_activity(session_id)
         await self._persist_session(session)
         return True
 
@@ -100,8 +156,20 @@ class MultiplayerManager:
             status=session.status,
             players=session.players,
             current_node_states=session.current_node_states,
-            flags=session.flags
+            flags=session.flags,
+            host_id=session.host_id,
+            channel_id=session.channel_id
         )
+
+    def start_resolution(self, session_id: str) -> bool:
+        if session_id in self.resolving_sessions:
+            return False
+        self.resolving_sessions.add(session_id)
+        return True
+
+    def finish_resolution(self, session_id: str):
+        if session_id in self.resolving_sessions:
+            self.resolving_sessions.remove(session_id)
 
     def is_npc(self, user_id: str) -> bool:
         return user_id.startswith("npc_")
@@ -133,6 +201,7 @@ class MultiplayerManager:
             self.session_votes[session_id] = {}
 
         self.session_votes[session_id][role_id] = Vote(player_id=user_id, choice_index=choice_index)
+        self.update_activity(session_id)
         return True
 
     def get_vote_count(self, session_id: str) -> int:
@@ -166,11 +235,11 @@ class MultiplayerManager:
             for trait, weight in choice.npc_weights.items():
                 npc_trait_val = role.npc_traits.get(trait, 0.0)
                 score += npc_trait_val * weight
-            scores.append(score)
+            scores.append(max(score, 0.0))
 
         total_score = sum(scores)
         if total_score <= 0.0:
-            # Fallback to random if no traits match
+            # Fallback to random if no traits match or all scores clamped to 0
             return random.randint(0, len(choices) - 1)
 
         # Weighted random selection
@@ -187,10 +256,6 @@ class MultiplayerManager:
         session = self.active_sessions.get(session_id)
         if not session or session.status != "active":
             return
-
-        # Find NPCs for the current group decision node
-        # Assuming group decisions mean everyone is on the same node
-        # In a real sync scenario, we'd check each NPC's node
 
         npc_roles = []
         for user_id, role_id in session.players.items():
@@ -234,6 +299,7 @@ class MultiplayerManager:
             return False
 
         session.current_node_states[role_id] = next_node_id
+        self.update_activity(session_id)
         await self._persist_session(session)
         return True
 
@@ -261,6 +327,8 @@ class MultiplayerManager:
             del self.active_sessions[session_id]
         if session_id in self.session_votes:
             del self.session_votes[session_id]
+        if session_id in self.session_last_activity:
+            del self.session_last_activity[session_id]
 
         # Clean channel map
         ch_to_del = [ch for ch, s_id in self.channel_to_session.items() if s_id == session_id]

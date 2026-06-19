@@ -29,6 +29,9 @@ The root of the story JSON file is an object containing the following top-level 
 | `world_type`| String | **Required** | English identifier of the world. | `solo`, `fantasy`, `past`, `future`, `alternate`, `multi` | None |
 | `theme` | String | **Required** | Arabic category/theme name matching the catalog. | See World & Theme Catalog below | None |
 | `game_mode` | String | **Required** | Gameplay mode. Single player vs multiplayer. | `"single"` or `"multi"` | None |
+| `min_players`| Integer | Optional (Req for `multi`) | Minimum players required to start the session. | e.g. `2` | `1` |
+| `max_players`| Integer | Optional (Req for `multi`) | Maximum players allowed in the session. | e.g. `4` | `1` |
+| `roles` | Object | Optional (Req for `multi`) | Dictionary of available character roles. | Key: role ID; Value: Role Object | None |
 | `start_scene`| String | **Required** | Node key where the story begins. | Typically `"start"` | None |
 | `spine` | Object | **Required** | The narrative backbone structure (6 fields). | See Spine Object below | None |
 | `flags` | Array | Optional | List of unique flags used in the story. | Array of Flag Objects | `[]` |
@@ -47,6 +50,16 @@ The `spine` object defines the narrative backbone of the story. It must contain 
 *   **`complication`** (String): The point where the simple solution fails due to the protagonist's wound.
 *   **`revelation`** (String): The twist or core truth that reframes earlier events.
 *   **`verdict`** (String): The ultimate moral or physical consequence of the player's choices.
+
+---
+
+## 3.5. Roles Object
+
+Required for multiplayer stories (`game_mode: "multi"`). Defines the playable characters. Each key is a unique English role ID (e.g. `"prince_heir"`, `"spy"`), mapping to a role object containing:
+
+*   **`title`** (String, **Required**): The Arabic title of the role shown to players (e.g. `"الأمير الوريث"`).
+*   **`description`** (String, **Required**): Brief Arabic overview of the role's background and motives.
+*   **`npc_traits`** (Object, **Required**): Trait keys and weights (float from `0.0` to `1.0`) defining this character's personality when played by a bot (NPC). Traits typically include `"greedy"`, `"loyal"`, `"ruthless"`, `"cowardly"`, `"brave"`, etc.
 
 ---
 
@@ -76,16 +89,23 @@ The `nodes` object contains the actual gameplay steps. Each node has a unique st
 *   **`type`** (String, **Required**): The category of the node. Valid values:
     *   `opening`: The story's introduction.
     *   `discovery`: Revealing new clues or information.
-    *   `decision`: A branch where the player chooses a path.
+    *   `decision`: A branch where the player chooses a path (Solo stories).
     *   `consequence`: A scene resolving previous actions/flags.
     *   `escalation`: Raising tension or stakes.
     *   `revelation`: A major plot twist node.
     *   `breath`: A slower-paced, atmospheric reflection node.
     *   `climax`: The final confrontation of the story.
     *   `ending`: Terminal nodes containing the story outcome.
-*   **`text`** (String, **Required**): The narrative content of the node written in clear, simple Arabic (6-8 sentences maximum, present tense, second person "أنت").
+    *   `group_decision`: A multiplayer node resolved by a majority vote of all players.
+    *   `solo_decision`: A multiplayer node where a single assigned player role makes the choice.
+*   **`text`** (String or Object, **Required**): The narrative content of the node. In solo stories, this is a String. In multiplayer stories, this can be an Object with keys:
+    *   `default` (String): The public text shown to all players in the channel.
+    *   `asymmetric` (Object, Optional): A mapping of role IDs (e.g. `"spy"`) to role-specific private text shown ephemerally to that player.
 *   **`is_ending`** (Boolean, Optional): Must be set to `true` on ending nodes. Defaults to `false`.
 *   **`image_url`** (String, Optional): Link to an image displayed with the node.
+*   **`assigned_to`** (String, Required for `solo_decision` nodes): The `role_id` of the player responsible for choosing.
+*   **`is_convergence`** (Boolean, Optional): If `true`, path synchronization forces players on other branches to wait at this node until all players catch up.
+*   **`npc_dialogues`** (Object, Optional): Dict mapping `role_id` -> Choice next scene -> Dialogue string. Used to print NPC dialogue when they vote.
 *   **`choices`** (Array, **Required** unless `is_ending` is `true`): List of Choice Objects (maximum 4). Ending nodes must have an empty choices array or omit it.
 
 ---
@@ -102,6 +122,8 @@ Each choice inside the `choices` array of a node represents an action the player
 *   **`points_reward`** (Integer, Optional): Points awarded to the player. Defaults to `0`.
 *   **`required_points`** (Integer, Optional): Points required to choose this action.
 *   **`reputation`** (String, Optional): Reputation adjustments associated with this choice.
+*   **`npc_weights`** (Object, Optional): Trait weights used by NPCs to select this choice. E.g., `{"ruthless": 0.8}`.
+*   **`ephemeral_text`** (String, Optional): Ephemeral feedback text shown only to the choosing player after selecting this option (commonly used in solo decisions).
 
 ---
 

@@ -70,3 +70,7 @@ This catalog lists the active stories available in the bot. All stories have bee
     *   **Theme:** نجاة الفريق (Team Survival)
     *   **Node Count:** 5 nodes (Sample/Test)
     *   **Endings:** 2 endings
+*   **[خيانة في الصقيع](file:///c:/Antigravity%20help/main%20bot/Main-bot-with-corrected-stories-main/stories_only_bot/data/stories/multi_frozen_betrayal.json)** (`multi_frozen_betrayal.json`)
+    *   **Theme:** المعضلات الأخلاقية (Ethical Dilemmas)
+    *   **Node Count:** 66 nodes
+    *   **Endings:** 4 endings

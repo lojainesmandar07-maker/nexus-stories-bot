@@ -20,8 +20,8 @@ load_dotenv()
 # Primary key for this project is DISCORD_TOKEN, but BOT_TOKEN/TOKEN are
 # supported to reduce deployment misconfiguration issues.
 def _resolve_discord_token() -> str:
-    # First priority: Hardcoded token above
-    if MY_BOT_TOKEN and MY_BOT_TOKEN != "your_bot_token_here":
+    # First priority: Hardcoded token above (ignore placeholder)
+    if MY_BOT_TOKEN and MY_BOT_TOKEN.strip() != "your_bot_token_here":
         return MY_BOT_TOKEN.strip()
 
     # Ordered by preference.

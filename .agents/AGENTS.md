@@ -23,7 +23,8 @@ stories_only_bot/
 │   ├── models.py        # Data models: Story, Scene, Choice, Perspective
 │   ├── story_manager.py # Loads and resolves stories from JSON files
 │   ├── solo_manager.py  # Solo play session management
-│   └── event_manager.py # Multiplayer event management
+│   ├── multiplayer_manager.py # Multiplayer session, votes, and NPC decisions
+│   └── event_manager.py # Old single-story interactive event management
 ├── cogs/                # Discord command handlers
 │   ├── solo_cog.py      # Solo story commands
 │   ├── event_cog.py     # Multiplayer event commands
@@ -79,8 +80,8 @@ Every story must meet these minimums:
 Stories are pure data (JSON files). Do not modify any Python code in `engine/`, `core/`, `cogs/`, or `ui/` to accommodate a story. If the JSON schema doesn't support what you need, flag it as a feature request.
 
 ### Rule 7: Valid World Types and Themes
-Valid `world_type` values: `solo`, `fantasy`, `past`, `future`, `alternate`, `multi`
-Valid `world` (Arabic) values: `القصص الفردية`, `الفانتازيا`, `الماضي`, `المستقبل`, `الواقع البديل`
+- Valid `world_type` values: `solo`, `fantasy`, `past`, `future`, `alternate`, `multi`
+- Valid `world` (Arabic) values: `القصص الفردية`, `الفانتازيا`, `الماضي`, `المستقبل`, `الواقع البديل`, `قصص جماعية`
 
 Themes must match one of the categories defined in `core/category_catalog.py`.
 

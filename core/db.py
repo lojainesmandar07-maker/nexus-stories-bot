@@ -86,9 +86,20 @@ async def init_db() -> None:
                 players TEXT, -- JSON mapping of discord_id -> role_id
                 current_node_states TEXT, -- JSON mapping of role_id -> current_node_id
                 flags TEXT, -- JSON mapping of flags set in session
+                host_id TEXT,
+                channel_id INTEGER,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+
+        # Migration: Add host_id and channel_id to existing database if missing
+        cursor = await db.execute("PRAGMA table_info(multiplayer_sessions);")
+        columns = [row[1] for row in await cursor.fetchall()]
+        if columns:
+            if "host_id" not in columns:
+                await db.execute("ALTER TABLE multiplayer_sessions ADD COLUMN host_id TEXT;")
+            if "channel_id" not in columns:
+                await db.execute("ALTER TABLE multiplayer_sessions ADD COLUMN channel_id INTEGER;")
 
         await db.commit()
 
@@ -103,31 +114,37 @@ async def save_multiplayer_session(
     status: str,
     players: Dict[str, str],
     current_node_states: Dict[str, str],
-    flags: list[str]
+    flags: list[str],
+    host_id: str = "",
+    channel_id: int = 0
 ) -> None:
     async with get_connection() as db:
         await db.execute("""
-            INSERT INTO multiplayer_sessions (session_id, story_id, status, players, current_node_states, flags)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO multiplayer_sessions (session_id, story_id, status, players, current_node_states, flags, host_id, channel_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(session_id) DO UPDATE SET
                 status=excluded.status,
                 players=excluded.players,
                 current_node_states=excluded.current_node_states,
-                flags=excluded.flags
+                flags=excluded.flags,
+                host_id=excluded.host_id,
+                channel_id=excluded.channel_id
         """, (
             session_id,
             story_id,
             status,
             json.dumps(players),
             json.dumps(current_node_states),
-            json.dumps(flags)
+            json.dumps(flags),
+            host_id,
+            channel_id
         ))
         await db.commit()
 
 async def load_multiplayer_session(session_id: str) -> Optional[Dict[str, Any]]:
     async with get_connection() as db:
         cursor = await db.execute(
-            "SELECT story_id, status, players, current_node_states, flags FROM multiplayer_sessions WHERE session_id = ?",
+            "SELECT story_id, status, players, current_node_states, flags, host_id, channel_id FROM multiplayer_sessions WHERE session_id = ?",
             (session_id,)
         )
         row = await cursor.fetchone()
@@ -140,5 +157,7 @@ async def load_multiplayer_session(session_id: str) -> Optional[Dict[str, Any]]:
             "status": row[1],
             "players": json.loads(row[2]),
             "current_node_states": json.loads(row[3]),
-            "flags": json.loads(row[4])
+            "flags": json.loads(row[4]),
+            "host_id": row[5] if row[5] is not None else "",
+            "channel_id": row[6] if row[6] is not None else 0
         }

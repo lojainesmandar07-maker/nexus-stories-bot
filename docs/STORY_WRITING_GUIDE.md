@@ -1353,4 +1353,51 @@ If the player chooses between two major starting methods (e.g. *Infiltrating thr
 
 ---
 
+## Part Nineteen: Multiplayer Story Writing Guide (دليل كتابة القصص الجماعية)
+
+Writing multiplayer stories for **The Nexus (النكسس)** requires combining branching narrative structure with cooperative and competitive roleplay. Follow these guidelines to design stories for multiple players:
+
+### 1. Character Role Design (تصميم أدوار الشخصيات)
+- **Asymmetric Perspectives**: Each role should have unique background knowledge, secrets, or conflicting objectives. For example, in a palace conspiracy, the `prince_heir` (الأمير) wants stability while the `spy` (الحارس الشخصي) holds information about a hidden gate or betrayal.
+- **Role Identity**: Describe the role's tone and perspective clearly in the `roles` object. The description helps players understand how to play.
+- **Personality Weights (NPC Traits)**: Define numeric traits (e.g., `greedy`, `loyal`, `ruthless`, `cowardly`) between `0.0` and `1.0`. These traits dictate bot choices if the role is vacant, keeping NPC actions consistent with their character design.
+
+### 2. Decision Node Architectures (هندسة العقد والقرارات)
+Multiplayer stories use two primary decision node types:
+- **Group Decisions (`group_decision`)**:
+  - Resolved by a democratic vote of all active players in the channel.
+  - Use these for major team directions, physical paths, or moral forks that affect the entire party (e.g., escaping through a main gate vs. sneaking).
+- **Solo Decisions (`solo_decision`)**:
+  - Assigned to a specific role (`assigned_to: "role_id"`).
+  - The options are displayed to that player alone in an ephemeral (private) message, and their choice remains secret until the consequences resolve.
+  - Use these for secret actions, assassinations, sabotage, or individual character trials (e.g., a spy choosing whether to poison a glass).
+  - Every solo choice must define `ephemeral_text` to provide instant feedback to the player (e.g., "أفرغت السم في الكأس بنجاح").
+
+### 3. Asymmetric Information (المعلومات غير المتماثلة)
+- Use asymmetric text blocks on nodes to hide clues or give specific characters unique descriptions:
+  ```json
+  "text": {
+    "default": "تقفون أمام البوابة المغلقة للقصر، والمتمردون يقتربون من الخارج.",
+    "asymmetric": {
+      "spy": "تقفون أمام البوابة. تلمح مفتاح صيانة سري مخفي تحت التمثال الأيسر."
+    }
+  }
+  ```
+- This encourages players to communicate outside the bot or coordinate choices in the chat.
+
+### 4. Path Synchronization & Convergence (التزامن والالتقاء)
+- When a story splits into secret branches or solo paths, synchronize the narrative using `is_convergence: true` on nodes where the party meets again.
+- The engine will hold the players who arrive first in a wait state until all other roles catch up, merging their timelines before resuming group play.
+
+### 5. NPC Autonomy & Dialogues (حوارات البوت الذاتية)
+- Every choice should define `npc_weights` for the character traits, matching the traits in the `roles` object.
+- Define `npc_dialogues` on nodes. When a bot-controlled NPC votes for a choice, the bot posts the corresponding dialogue in the channel to justify its action (e.g., `spy` says "البوابة مهترئة، تفجيرها هو الحل الأسرع!").
+
+### 6. Zero Early Dead Endings (منع النهايات المبكرة)
+- **No Early Deaths or Endings**: Multiplayer stories must **never** contain any endings or deaths reachable in under 5 choices from the start node.
+- Since coordinating a group of players takes time, reaching a sudden ending after only 2 or 3 choices is extremely frustrating for the party. Ensure all story branches run at least 5 choices (ideally 10+ turns) before reaching any ending node.
+
+---
+
 *Note: For the technical details of the story JSON schema format, refer to [STORY_JSON_SCHEMA.md](file:///c:/Antigravity%20help/main%20bot/Main-bot-with-corrected-stories-main/stories_only_bot/docs/STORY_JSON_SCHEMA.md).*
+

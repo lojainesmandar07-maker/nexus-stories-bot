@@ -525,7 +525,10 @@ def validate_story(filepath: str, warn_only: bool = False) -> ValidationResult:
     # -- Min path length --
     shortest, longest = _all_paths_lengths(effective_start, nodes)
     if shortest is not None and shortest < 5:
-        res.warn(f"Shortest path to an ending is only {shortest} steps (recommended ≥ 5)")
+        if game_mode == "multi":
+            res.warn(f"❌ CRITICAL PACING RULE: Multiplayer stories must NOT contain any early endings. The shortest path to an ending is only {shortest} steps (must be ≥ 5 to prevent players' sessions from being cut short).")
+        else:
+            res.warn(f"Shortest path to an ending is only {shortest} steps (recommended ≥ 5)")
     elif shortest is not None:
         res.ok(f"Shortest path to ending: {shortest} steps")
     else:
