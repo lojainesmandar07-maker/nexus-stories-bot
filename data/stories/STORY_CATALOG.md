@@ -52,3 +52,7 @@ This catalog lists the active stories available in the bot. All stories have bee
     *   **Theme:** قوانين مختلفة (Different Laws)
     *   **Node Count:** 58 nodes
     *   **Endings:** 5 endings
+*   **[حبل الوريد](file:///c:/Antigravity%20help/main%20bot/Main-bot-with-corrected-stories-main/stories_only_bot/data/stories/alternate_doppelganger_link.json)** (`alternate_doppelganger_link.json`)
+    *   **Theme:** نسخة أخرى منك (Another Version of You)
+    *   **Node Count:** 64 nodes
+    *   **Endings:** 5 endings
