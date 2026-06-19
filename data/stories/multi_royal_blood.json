@@ -6,7 +6,7 @@
       "world_type": "multi",
       "theme": "صراع على البقاء",
       "game_mode": "multi",
-      "min_players": 4,
+      "min_players": 2,
       "max_players": 4,
       "start_scene": "start",
       "spine": {
