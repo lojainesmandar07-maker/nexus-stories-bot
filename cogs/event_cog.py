@@ -131,7 +131,7 @@ class RoleSelectView(discord.ui.View):
             intro_embed = discord.Embed(
                 title=f"🎭 تبدأ الآن قصة: {self.story.title}",
                 description=(
-                    f"✨ **الملخص:**\n{self.story.summary}\n\n"
+                    f"✨ **الملخص:**\n{self.story.description}\n\n"
                     f"👥 **توزيع الأدوار:**\n" + "\n".join(players_intro) +
                     f"\n\n⚠️ **توجيهات هامة للعب:**\n"
                     f"• هذه قصة تفاعلية جماعية؛ ستتخذون القرارات معاً بالتصويت.\n"
