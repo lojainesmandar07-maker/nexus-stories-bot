@@ -70,3 +70,10 @@ This catalog lists the active stories available in the bot. All stories have bee
     *   **Theme:** نجاة الفريق (Team Survival)
     *   **Node Count:** 5 nodes (Sample/Test)
     *   **Endings:** 2 endings
+
+## ⚔️ Multiplayer Stories (القصص الجماعية)
+
+*   **[خيانة في الصقيع](multi_frozen_betrayal.json)** (`multi_frozen_betrayal.json`)
+    *   **Theme:** المعضلات الأخلاقية (Ethical Dilemmas)
+    *   **Node Count:** 66 nodes
+    *   **Endings:** 4 endings
