@@ -45,6 +45,7 @@ def _warn(msg: str) -> str:
 VALID_NODE_TYPES = {
     "opening", "discovery", "decision", "consequence",
     "escalation", "revelation", "breath", "climax", "ending",
+    "group_decision", "solo_decision",
 }
 VALID_WORLD_TYPES = {"solo", "fantasy", "past", "future", "alternate", "multi"}
 VALID_GAME_MODES  = {"single", "multi"}
@@ -240,6 +241,48 @@ def validate_story(filepath: str, warn_only: bool = False) -> ValidationResult:
     else:
         res.ok("All required top-level fields present")
 
+    # -- Multiplayer-specific top-level fields --
+    game_mode = data.get("game_mode", "single")
+    roles_dict = {}
+    if game_mode == "multi":
+        mp_required = {"min_players", "max_players", "roles"}
+        missing_mp = mp_required - set(data.keys())
+        if missing_mp:
+            res.fail(f"Multiplayer story missing top-level fields: {', '.join(sorted(missing_mp))}")
+        else:
+            min_p = data.get("min_players")
+            max_p = data.get("max_players")
+            if not isinstance(min_p, int) or min_p <= 0:
+                res.fail(f"Invalid min_players: {min_p} (must be a positive integer)")
+            if not isinstance(max_p, int) or max_p <= 0:
+                res.fail(f"Invalid max_players: {max_p} (must be a positive integer)")
+            if isinstance(min_p, int) and isinstance(max_p, int) and min_p > max_p:
+                res.fail(f"min_players ({min_p}) cannot be greater than max_players ({max_p})")
+            
+            roles_raw = data.get("roles")
+            if not isinstance(roles_raw, dict):
+                res.fail("roles must be a dictionary")
+            else:
+                roles_dict = roles_raw
+                if not roles_dict:
+                    res.fail("roles dictionary cannot be empty")
+                else:
+                    for r_id, r_data in roles_dict.items():
+                        if not isinstance(r_data, dict):
+                            res.fail(f"Role '{r_id}' must be a dictionary")
+                        else:
+                            if not r_data.get("title", "").strip():
+                                res.fail(f"Role '{r_id}' missing or empty title")
+                            if not r_data.get("description", "").strip():
+                                res.fail(f"Role '{r_id}' missing or empty description")
+                            npc_traits = r_data.get("npc_traits", {})
+                            if not isinstance(npc_traits, dict):
+                                res.fail(f"Role '{r_id}' npc_traits must be a dictionary")
+                            else:
+                                for trait, val in npc_traits.items():
+                                    if not isinstance(val, (int, float)):
+                                        res.fail(f"Role '{r_id}' trait '{trait}' value must be a number")
+
     # -- Spine --
     spine = data.get("spine")
     if not spine or not isinstance(spine, dict):
@@ -316,8 +359,52 @@ def validate_story(filepath: str, warn_only: bool = False) -> ValidationResult:
             nodes_invalid_type.append((nk, ntype))
 
         # text field
-        if not nd.get("text", "").strip():
-            nodes_empty_text.append(nk)
+        text_raw = nd.get("text", "")
+        if isinstance(text_raw, dict):
+            default_text = text_raw.get("default", "")
+            if not isinstance(default_text, str) or not default_text.strip():
+                nodes_empty_text.append(f"{nk} (missing/empty default text in dict)")
+            asym = text_raw.get("asymmetric", {})
+            if asym:
+                if not isinstance(asym, dict):
+                    nodes_empty_text.append(f"{nk} (asymmetric text must be a dictionary)")
+                else:
+                    for r_id, r_txt in asym.items():
+                        if game_mode == "multi" and r_id not in roles_dict:
+                            res.fail(f"Node '{nk}' asymmetric text references undefined role: '{r_id}'")
+                        if not isinstance(r_txt, str) or not r_txt.strip():
+                            nodes_empty_text.append(f"{nk} (empty asymmetric text for role '{r_id}')")
+        elif isinstance(text_raw, str):
+            if not text_raw.strip():
+                nodes_empty_text.append(nk)
+        else:
+            nodes_empty_text.append(f"{nk} (invalid text type: {type(text_raw).__name__})")
+
+        # Validate assigned_to for solo decisions
+        if ntype == "solo_decision":
+            assigned_to = nd.get("assigned_to")
+            if not assigned_to:
+                res.fail(f"Solo decision node '{nk}' missing required 'assigned_to' field")
+            elif game_mode == "multi" and assigned_to not in roles_dict:
+                res.fail(f"Solo decision node '{nk}' assigned_to role '{assigned_to}' is not defined in roles")
+        
+        # Validate npc_dialogues if present
+        npc_dialogues = nd.get("npc_dialogues", {})
+        if npc_dialogues:
+            if not isinstance(npc_dialogues, dict):
+                res.fail(f"Node '{nk}' npc_dialogues must be a dictionary")
+            elif game_mode == "multi":
+                for r_id, d_map in npc_dialogues.items():
+                    if r_id not in roles_dict:
+                        res.fail(f"Node '{nk}' npc_dialogues references undefined role: '{r_id}'")
+                    if not isinstance(d_map, dict):
+                        res.fail(f"Node '{nk}' npc_dialogues for role '{r_id}' must be a dictionary mapping next nodes to dialogue text")
+                    else:
+                        for next_scene_key, diag_text in d_map.items():
+                            if next_scene_key not in nodes:
+                                res.fail(f"Node '{nk}' npc_dialogues for role '{r_id}' references non-existent node: '{next_scene_key}'")
+                            if not isinstance(diag_text, str) or not diag_text.strip():
+                                res.fail(f"Node '{nk}' npc_dialogues for role '{r_id}' at '{next_scene_key}' is empty")
 
         # choices
         choices = nd.get("choices", [])
@@ -330,6 +417,16 @@ def validate_story(filepath: str, warn_only: bool = False) -> ValidationResult:
             if nxt and nxt not in nodes:
                 broken_nexts.append((nk, ci, nxt))
             nexts_in_node.append(nxt)
+
+            # Validate npc_weights if present
+            npc_weights = ch.get("npc_weights", {})
+            if npc_weights:
+                if not isinstance(npc_weights, dict):
+                    res.fail(f"Node '{nk}' choice '{label}' npc_weights must be a dictionary")
+                else:
+                    for trait, weight in npc_weights.items():
+                        if not isinstance(weight, (int, float)):
+                            res.fail(f"Node '{nk}' choice '{label}' weight for trait '{trait}' must be a number")
 
         # trap node: both choices lead to same destination
         if len(nexts_in_node) == 2 and nexts_in_node[0] and nexts_in_node[0] == nexts_in_node[1]:
