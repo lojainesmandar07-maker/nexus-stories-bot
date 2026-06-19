@@ -44,7 +44,11 @@ This catalog lists the active stories available in the bot. All stories have bee
     *   **Theme:** هوية في عالم مزيف (Sci-Fi Identity)
     *   **Node Count:** 54 nodes
     *   **Endings:** 5 endings
-*   **[النسخة المتمردة](./future_ai_replica.json)** (`future_ai_replica.json`)
+*   **[النسخة المتمردة](file:///c:/Antigravity%20help/main%20bot/Main-bot-with-corrected-stories-main/stories_only_bot/data/stories/future_ai_replica.json)** (`future_ai_replica.json`)
     *   **Theme:** ذكاء اصطناعي يتمرد (AI Rebellion)
     *   **Node Count:** 41 nodes
     *   **Endings:** 6 endings
+*   **[صكوك الأسماء](file:///c:/Antigravity%20help/main%20bot/Main-bot-with-corrected-stories-main/stories_only_bot/data/stories/alternate_true_name_broker.json)** (`alternate_true_name_broker.json`)
+    *   **Theme:** قوانين مختلفة (Different Laws)
+    *   **Node Count:** 58 nodes
+    *   **Endings:** 5 endings
