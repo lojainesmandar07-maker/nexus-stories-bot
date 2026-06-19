@@ -67,14 +67,17 @@ Fix all failures before submitting. Use `--warn-only` during development for a s
 
 ### Rule 5: Quality Bar
 Every story must meet these minimums:
-- **30+ nodes** for short stories, **55+** for medium, **100+** for flagship
-- **600+ lines** of formatted JSON
-- **All flags must be functional** — every `sets_flag` must have a `requires_flag`, and vice versa
-- **No trap nodes** — both choices must lead to different destinations
-- **No death before 5 choices** from start
-- **3+ breath nodes** for pacing
-- **Every ending** must have flag-conditional callbacks and the retry message
-- **A `spine` object** with all 6 fields (wound, lie, trigger, complication, revelation, verdict)
+- **30+ nodes** for short stories, **55+** for medium, **100+** for flagship (multiplayer stories must be at least 30+ nodes, ideally 55+).
+- **600+ lines** of formatted JSON (700+ lines for multiplayer stories).
+- **All flags must be functional** — every `sets_flag` must have a `requires_flag`, and vice versa.
+- **No trap nodes** — both choices must lead to different destinations.
+- **No death before 5 choices** from start.
+- **No early endings in multiplayer** — the shortest path to a multiplayer ending must be at least 8 to 10 choices (never under 5) to prevent early party kicks.
+- **Detailed Choice Descriptions in Main Text** — All options and dilemmas must be explained in the node text, keeping button labels short and verb-driven.
+- **Literary & Sensory Prose** — Avoid short descriptions. Use multi-sensory, evocative Arabic prose matching the quality of flagship solo stories (like "مفتاح الغرفة 404").
+- **3+ breath nodes** for pacing.
+- **Every ending** must have flag-conditional callbacks and the retry message.
+- **A `spine` object** with all 6 fields (wound, lie, trigger, complication, revelation, verdict).
 
 ### Rule 6: Do Not Modify Engine Code for Stories
 Stories are pure data (JSON files). Do not modify any Python code in `engine/`, `core/`, `cogs/`, or `ui/` to accommodate a story. If the JSON schema doesn't support what you need, flag it as a feature request.

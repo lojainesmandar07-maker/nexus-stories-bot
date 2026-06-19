@@ -1353,16 +1353,22 @@ If the player chooses between two major starting methods (e.g. *Infiltrating thr
 
 ---
 
-## Part Nineteen: Multiplayer Story Writing Guide (دليل كتابة القصص الجماعية)
+## Part Nineteen: Multiplayer Story Writing Guide (دليل كتابة القصص الجماعية الاحترافية)
 
 Writing multiplayer stories for **The Nexus (النكسس)** requires combining branching narrative structure with cooperative and competitive roleplay. Follow these guidelines to design stories for multiple players:
 
-### 1. Character Role Design (تصميم أدوار الشخصيات)
+### 1. High-Style Arabic Prose (فصاحة اللغة وبلاغتها)
+- **Atmospheric Texture**: Never write dry, short visual text. The prose must be evocative and literary (same as the best solo stories like "مفتاح الغرفة 404"). Use metaphors, sensory details (sound, smell, temperature), and describe physical reactions showing emotion (e.g., cold sweat, catching breath, heavy silence).
+- **Genre Consistency**: Maintain a rich genre vocabulary:
+  * *Horror/Dread*: (الصقيع القارس، السواد الحالك، صدى الخطوات، رائحة الرطوبة والعفن).
+  * *Fantasy/Politics*: (دهاء البلاط، النفوذ والسطوة، الميثاق المدنس، خيانة الدماء).
+
+### 2. Character Role Design & Biographies (تصميم أدوار الشخصيات)
 - **Asymmetric Perspectives**: Each role should have unique background knowledge, secrets, or conflicting objectives. For example, in a palace conspiracy, the `prince_heir` (الأمير) wants stability while the `spy` (الحارس الشخصي) holds information about a hidden gate or betrayal.
-- **Role Identity**: Describe the role's tone and perspective clearly in the `roles` object. The description helps players understand how to play.
+- **Deep Biographies**: The `roles` object must have rich, detailed descriptions detailing their background, their relationships to other characters, and their hidden stakes.
 - **Personality Weights (NPC Traits)**: Define numeric traits (e.g., `greedy`, `loyal`, `ruthless`, `cowardly`) between `0.0` and `1.0`. These traits dictate bot choices if the role is vacant, keeping NPC actions consistent with their character design.
 
-### 2. Decision Node Architectures (هندسة العقد والقرارات)
+### 3. Decision Node Architectures (هندسة العقد والقرارات)
 Multiplayer stories use two primary decision node types:
 - **Group Decisions (`group_decision`)**:
   - Resolved by a democratic vote of all active players in the channel.
@@ -1370,32 +1376,44 @@ Multiplayer stories use two primary decision node types:
 - **Solo Decisions (`solo_decision`)**:
   - Assigned to a specific role (`assigned_to: "role_id"`).
   - The options are displayed to that player alone in an ephemeral (private) message, and their choice remains secret until the consequences resolve.
-  - Use these for secret actions, assassinations, sabotage, or individual character trials (e.g., a spy choosing whether to poison a glass).
-  - Every solo choice must define `ephemeral_text` to provide instant feedback to the player (e.g., "أفرغت السم في الكأس بنجاح").
+  - Use these for secret actions, assassinations, sabotage, or individual character trials.
+  - Every solo choice must define `ephemeral_text` to provide instant feedback to the player.
 
-### 3. Asymmetric Information (المعلومات غير المتماثلة)
-- Use asymmetric text blocks on nodes to hide clues or give specific characters unique descriptions:
-  ```json
-  "text": {
-    "default": "تقفون أمام البوابة المغلقة للقصر، والمتمردون يقتربون من الخارج.",
-    "asymmetric": {
-      "spy": "تقفون أمام البوابة. تلمح مفتاح صيانة سري مخفي تحت التمثال الأيسر."
-    }
-  }
-  ```
-- This encourages players to communicate outside the bot or coordinate choices in the chat.
+### 4. Choice Setup & Consequences (تنسيق الخيارات والنتائج)
+- **Explain Dilemmas in Main Text**: The main text of a node must explain the situation and detail the choices, explaining the trade-offs and risks. Do NOT put long explanation text inside the choice buttons. Keep the button labels short and verb-driven (e.g., "تفتيش القبو" or "مواجهة الحارس").
+- **Direct Choice Outcomes**: The next node (or breath node) must explicitly describe the immediate result of the choice, how the characters react, and the moral or relational weight of that action.
+- **Alignment**: Never bundle major actions (like taking key items) into a result if the preceding choice only mentioned a minor action.
 
-### 4. Path Synchronization & Convergence (التزامن والالتقاء)
+### 5. Advanced Asymmetric Mechanics (ميكانيكيات الأسرار ومشاركتها)
+- **The "Share or Keep Secret" Pattern**: When a player learns a secret (e.g., finding a letter in a `solo_decision`), design choices that force them to decide how to handle this information:
+  1. *Share with the group*: Sets a group flag and announces the information publicly in the channel.
+  2. *Keep it secret*: Sets a personal flag and keeps the information private (ephemeral).
+- **Actual Plot Clues**: Asymmetric text must contain actual plot clues or secret objectives that drive players to behave differently or debate their choices. It must not be fluff.
+
+### 6. The Three-Clue Rule for Traitors and Mysteries (قاعدة الأدلة الثلاثة)
+If a story has a mystery (like a hidden traitor or a secret identity), the writer must plant at least three distinct clues across different paths:
+- **Clue 1 (Visual/Environmental)**: An item or a change in the room (e.g., mud on a boot, an open window).
+- **Clue 2 (Behavioral/NPC)**: An NPC reacting oddly or avoiding a specific topic.
+- **Clue 3 (Document/Text)**: A ledger, a letter, or a scrap of paper.
+This ensures that the revelation feels completely earned and logical rather than coming out of nowhere.
+
+### 7. NPC Trust & Relationship Flags (علاقات الشخصيات وتأثيرها)
+Introduce relational consequences into the choice path:
+- If a player saves or trusts an NPC, set a flag like `npc_trusts_player`.
+- Later in the story, if the player is in danger, that NPC will step in to save them *only* if the trust flag is set. If not, the NPC abandons them. This makes the characters feel alive and reactive.
+
+### 8. Path Synchronization & Convergence (التزامن والالتقاء)
 - When a story splits into secret branches or solo paths, synchronize the narrative using `is_convergence: true` on nodes where the party meets again.
 - The engine will hold the players who arrive first in a wait state until all other roles catch up, merging their timelines before resuming group play.
 
-### 5. NPC Autonomy & Dialogues (حوارات البوت الذاتية)
+### 9. NPC Autonomy & Dialogues (حوارات البوت الذاتية)
 - Every choice should define `npc_weights` for the character traits, matching the traits in the `roles` object.
-- Define `npc_dialogues` on nodes. When a bot-controlled NPC votes for a choice, the bot posts the corresponding dialogue in the channel to justify its action (e.g., `spy` says "البوابة مهترئة، تفجيرها هو الحل الأسرع!").
+- Define `npc_dialogues` on nodes. When a bot-controlled NPC votes for a choice, the bot posts the corresponding dialogue in the channel to justify its action.
 
-### 6. Zero Early Dead Endings (منع النهايات المبكرة)
+### 10. Zero Early Dead Endings (منع النهايات المبكرة)
 - **No Early Deaths or Endings**: Multiplayer stories must **never** contain any endings or deaths reachable in under 5 choices from the start node.
-- Since coordinating a group of players takes time, reaching a sudden ending after only 2 or 3 choices is extremely frustrating for the party. Ensure all story branches run at least 5 choices (ideally 10+ turns) before reaching any ending node.
+- Reaching a sudden ending after only 2 or 3 choices is extremely frustrating for the party. Ensure all story branches run at least 5 choices (ideally 10+ turns) before reaching any ending node.
+- **Stories must be at least 700 lines of formatted JSON.** Write out every node with full literary description and complete branching logic.
 
 ---
 
