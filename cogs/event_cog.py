@@ -41,7 +41,18 @@ class RoleSelectView(discord.ui.View):
             user_id = str(interaction.user.id)
             success = self.manager.add_player(self.session_id, user_id, role_id)
             if success:
-                await interaction.response.send_message(f"✅ انضممت بنجاح بدور: {role.title}", ephemeral=True)
+                embed = discord.Embed(
+                    title=f"🎭 تم اختيار دورك: {role.title}",
+                    description=(
+                        f"**📖 خلفية عن شخصيتك:**\n{role.description}\n\n"
+                        f"📊 **صفات الشخصية:**\n"
+                        f"• 🛡️ الرغبة في الحماية والإنقاذ: `{int(role.npc_traits.get('protective', 0.5) * 100)}%`\n"
+                        f"• 👁️ الحذر والمراقبة المستمرة: `{int(role.npc_traits.get('cautious', 0.5) * 100)}%`\n"
+                        f"• 🔍 الشك وعدم الثقة بالآخرين: `{int(role.npc_traits.get('suspicious', 0.5) * 100)}%`"
+                    ),
+                    color=discord.Color.gold()
+                )
+                await interaction.response.send_message(embed=embed, ephemeral=True)
                 await self.update_lobby_message(interaction.message)
             else:
                 await interaction.response.send_message(f"❌ هذا الدور محجوز أو أنت منضم بالفعل.", ephemeral=True)
@@ -197,11 +208,11 @@ class RoleSelectView(discord.ui.View):
         for uid, rid in session.players.items():
             role = self.story.roles.get(rid)
             role_name = role.title if role else rid
-            has_voted = "✅" if rid in votes else "⏳"
+            status = "🟢 تم التصويت" if rid in votes else "🟡 يفكر الآن..."
             if self.manager.is_npc(uid):
-                voters_text.append(f"{has_voted} **{role_name}** (البوت)")
+                voters_text.append(f"• **{role_name}** (البوت): {status}")
             else:
-                voters_text.append(f"{has_voted} <@{uid}> (**{role_name}**)")
+                voters_text.append(f"• <@{uid}> (**{role_name}**): {status}")
 
         embed.add_field(
             name=f"🗳️ الأصوات المسجلة ({len(votes)}/{len(session.players)})",

@@ -58,7 +58,7 @@ class MultiplayerManager:
                 print(f"Error in multiplayer session cleanup: {e}")
 
     def create_session(self, channel_id: int, story_id: str, host_id: str) -> str:
-        session_id = f"sess_{channel_id}_{random.randint(100000, 999999)}"
+        session_id = f"sess_{random.randint(100000, 999999)}"
         session = MultiplayerSession(
             session_id=session_id,
             story_id=story_id,
