@@ -1,0 +1,110 @@
+{
+  "id": "multi_sample_palace",
+  "title": "مؤامرة القصر",
+  "summary": "قصة خيانة ومكائد جماعية في قصر الحاكم القديم.",
+  "world": "قصص جماعية",
+  "world_type": "multi",
+  "theme": "نجاة الفريق",
+  "game_mode": "multi",
+  "min_players": 2,
+  "max_players": 2,
+  "start_scene": "start",
+  "spine": {
+    "wound": "الحرس والأمير خافوا من مواجهة المتمردين بمفردهم.",
+    "lie": "يعتقدون أن الحلفاء سيأتون دائماً للإنقاذ.",
+    "trigger": "محاصرة المتمردين للقصر وانقطاع طرق الإمداد.",
+    "complication": "اكتشاف جاسوس داخل القصر يربك الخطط.",
+    "revelation": "أحد الحراس هو المنسق السري مع الأعداء.",
+    "verdict": "مواجهة الحقيقة وتطهير القصر أو تسليمه للغزاة."
+  },
+  "roles": {
+    "prince_heir": {
+      "title": "الأمير الوريث",
+      "description": "يريد حماية العرش واستقرار المملكة.",
+      "npc_traits": { "greedy": 0.2, "loyal": 0.8, "ruthless": 0.4 }
+    },
+    "spy": {
+      "title": "الحارس الشخصي",
+      "description": "يحمل سراً قد يدمر الأمير.",
+      "npc_traits": { "greedy": 0.4, "loyal": 0.9, "ruthless": 0.6 }
+    }
+  },
+  "nodes": {
+    "start": {
+      "type": "group_decision",
+      "text": {
+        "default": "تقفون أمام البوابة المغلقة للقصر، والمتمردون يقتربون من الخارج.",
+        "asymmetric": {
+          "spy": "تقفون أمام البوابة. تلمح مفتاح صيانة سري مخفي تحت التمثال الأيسر."
+        }
+      },
+      "choices": [
+        {
+          "label": "تفجير البوابة والهروب",
+          "next": "node_blown_gate",
+          "sets_flag": "gate_destroyed",
+          "npc_weights": { "ruthless": 0.8 }
+        },
+        {
+          "label": "البحث عن آلية فتح آمنة",
+          "next": "node_solved_gate",
+          "npc_weights": { "loyal": 0.6 }
+        }
+      ],
+      "npc_dialogues": {
+        "spy": {
+          "node_blown_gate": "يهمس الجاسوس: 'الضجة ستلفت الانتباه، ولكن لا وقت لدينا!'",
+          "node_solved_gate": "يقول الجاسوس: 'دعوني أتفحص القفل أولاً...'"
+        }
+      }
+    },
+    "node_blown_gate": {
+      "type": "solo_decision",
+      "assigned_to": "spy",
+      "text": "أنت بمفردك الآن قرب مخزن السلاح السرّي، والوقت ضيق.",
+      "choices": [
+        {
+          "label": "تخريب البنادق",
+          "next": "node_ending_betrayed",
+          "sets_flag": "rifles_damaged",
+          "ephemeral_text": "قمت بتخريب البنادق بنجاح دون أن يشعر الأمير."
+        },
+        {
+          "label": "جمع الذخيرة والعودة",
+          "next": "node_ending_survived",
+          "ephemeral_text": "جمعت الذخيرة وعدت بسرعة للأمير."
+        }
+      ]
+    },
+    "node_solved_gate": {
+      "type": "solo_decision",
+      "assigned_to": "prince_heir",
+      "text": "تقف في غرفة التحكم، وأجهزة الاستشعار تشير إلى تسلل من الخلف.",
+      "choices": [
+        {
+          "label": "إغلاق فتحات التهوية",
+          "next": "node_ending_survived",
+          "sets_flag": "vents_sealed",
+          "ephemeral_text": "أغلقت فتحات التهوية بإحكام لحبس المتسللين."
+        },
+        {
+          "label": "تجاهل التنبيه",
+          "next": "node_ending_betrayed",
+          "ephemeral_text": "تجاهلت التنبيه مفترضاً أنه خلل فني."
+        }
+      ]
+    },
+    "node_ending_betrayed": {
+      "type": "ending",
+      "text": "تم اقتحام القصر بالكامل واعتقال الجميع بسبب التخريب والتكاسل. سقطت السلطنة في أيدي الغزاة. يمكنك المحاولة مجدداً واختيار مسارات أخرى لاستكشاف نهايات بديلة!",
+      "is_ending": true,
+      "choices": []
+    },
+    "node_ending_survived": {
+      "type": "ending",
+      "text": "نجحتم في التصدي للهجوم وحماية القصر حتى وصول الإمدادات فجراً. انتصرتم معاً. يمكنك المحاولة مجدداً واختيار مسارات أخرى لاستكشاف نهايات بديلة!",
+      "is_ending": true,
+      "choices": []
+    }
+  }
+}
