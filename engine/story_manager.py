@@ -79,6 +79,7 @@ class StoryManager:
         except Exception as e:
             print(f"Error loading story from {filepath}: {e}")
 
+
     def _parse_and_add_story(self, data: dict, theme: str, world_type: str):
         try:
             scenes = {}
@@ -96,16 +97,33 @@ class StoryManager:
                         required_points=choice_data.get("required_points"),
                         sets_flag=choice_data.get("sets_flag"),
                         requires_flag=choice_data.get("requires_flag"),
-                        reputation=choice_data.get("reputation")
+                        reputation=choice_data.get("reputation"),
+                        npc_weights=choice_data.get("npc_weights", {}),
+                        ephemeral_text=choice_data.get("ephemeral_text")
                     ))
+
+                # Handle text logic for asymmetric text
+                node_text_raw = node_data.get("text", "")
+                text_default = ""
+                asymmetric_text = None
+                if isinstance(node_text_raw, dict):
+                    text_default = node_text_raw.get("default", "")
+                    asymmetric_text = node_text_raw.get("asymmetric", None)
+                else:
+                    text_default = node_text_raw
 
                 scenes[node_id] = Scene(
                     id=node_id,
                     title=node_data.get("title", node_id),
-                    text=node_data.get("text", ""),
+                    text=text_default,
                     choices=choices,
                     is_ending=node_data.get("is_ending", False),
-                    image_url=node_data.get("image_url")
+                    image_url=node_data.get("image_url"),
+                    type=node_data.get("type", "group_decision"),
+                    assigned_to=node_data.get("assigned_to"),
+                    is_convergence=node_data.get("is_convergence", False),
+                    npc_dialogues=node_data.get("npc_dialogues", {}),
+                    asymmetric_text=asymmetric_text
                 )
 
             # Extract perspectives if present
@@ -149,6 +167,17 @@ class StoryManager:
                     resolved_start = default_start
             else:
                 resolved_start = default_start
+
+            # Parse Roles
+            from engine.models import Role
+            roles = {}
+            for role_id, role_data in data.get("roles", {}).items():
+                roles[role_id] = Role(
+                    title=role_data.get("title", ""),
+                    description=role_data.get("description", ""),
+                    npc_traits=role_data.get("npc_traits", {})
+                )
+
             story = Story(
                 id=story_id,
                 title=data.get("title", "بدون عنوان"),
@@ -159,7 +188,10 @@ class StoryManager:
                 scenes=scenes,
                 start_scene=resolved_start,
                 world_type=world_type,
-                perspectives=perspectives
+                perspectives=perspectives,
+                min_players=data.get("min_players", 1),
+                max_players=data.get("max_players", 1),
+                roles=roles
             )
 
             self.stories[story.id] = story
