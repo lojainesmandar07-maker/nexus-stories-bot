@@ -100,3 +100,9 @@ Themes must match one of the categories defined in `core/category_catalog.py`.
 ## Existing Stories (Reference)
 
 Check `data/stories/STORY_CATALOG.md` for the current catalog of stories with node counts and ending counts. Use existing stories as reference for format and quality expectations.
+
+## Multiplayer System Design & Tasks
+
+For coding agents working on the Multiplayer Engine:
+1. **Multiplayer Design Spec**: See [docs/MULTIPLAYER_DESIGN.md](file:///c:/Antigravity%20help/main%20bot/Main-bot-with-corrected-stories-main/stories_only_bot/docs/MULTIPLAYER_DESIGN.md) for JSON schemas, role mappings, and synchronization specifications.
+2. **Jules AI Tasks**: See [docs/JULES_MULTIPLAYER_IMPLEMENTATION.md](file:///c:/Antigravity%20help/main%20bot/Main-bot-with-corrected-stories-main/stories_only_bot/docs/JULES_MULTIPLAYER_IMPLEMENTATION.md) for the coding checklist, database modifications, and event manager blueprints.
