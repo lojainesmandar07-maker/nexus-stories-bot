@@ -61,3 +61,12 @@ This catalog lists the active stories available in the bot. All stories have bee
     *   **Theme:** نسخة أخرى منك (Doppelganger)
     *   **Node Count:** 64 nodes
     *   **Endings:** 5 endings
+
+---
+
+## 👥 Multiplayer Stories (القصص الجماعية)
+
+*   **[مؤامرة القصر](file:///c:/Antigravity%20help/main%20bot/Main-bot-with-corrected-stories-main/stories_only_bot/data/stories/multi_sample_palace.json)** (`multi_sample_palace.json`)
+    *   **Theme:** نجاة الفريق (Team Survival)
+    *   **Node Count:** 5 nodes (Sample/Test)
+    *   **Endings:** 2 endings
