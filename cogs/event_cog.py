@@ -336,8 +336,11 @@ class RoleSelectView(discord.ui.View):
         if is_npc:
             # Execute NPC Solo
             await asyncio.sleep(random.uniform(2.0, 5.0))
-            idx = self.manager.calculate_npc_vote(role_obj, scene.choices)
-            choice = scene.choices[idx]
+            available_choices = [c for c in scene.choices if not c.requires_flag or c.requires_flag in session.flags]
+            if not available_choices:
+                available_choices = scene.choices
+            idx_in_available = self.manager.calculate_npc_vote(role_obj, available_choices)
+            choice = available_choices[idx_in_available]
             dialogue = scene.npc_dialogues.get(target_role, {}).get(choice.next_scene)
             if dialogue:
                 await self.manager.send_npc_dialogue_via_webhook(self.session_id, target_role, dialogue, channel, self.story)

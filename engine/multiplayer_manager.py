@@ -312,10 +312,15 @@ class MultiplayerManager:
                 if not role:
                     continue
 
-                choice_idx = self.calculate_npc_vote(role, scene.choices)
-                self.register_vote(session_id, user_id, choice_idx, current_node_id)
+                available_choices = [c for c in scene.choices if not c.requires_flag or c.requires_flag in session.flags]
+                if not available_choices:
+                    available_choices = scene.choices
 
-                winning_choice = scene.choices[choice_idx]
+                choice_idx_in_available = self.calculate_npc_vote(role, available_choices)
+                winning_choice = available_choices[choice_idx_in_available]
+                choice_idx = scene.choices.index(winning_choice)
+                
+                self.register_vote(session_id, user_id, choice_idx, current_node_id)
 
                 dialogue_map = scene.npc_dialogues.get(role_id, {})
                 dialogue = dialogue_map.get(winning_choice.next_scene)
