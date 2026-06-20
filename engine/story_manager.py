@@ -330,3 +330,31 @@ class StoryManager:
             import hashlib
             return int(hashlib.sha256(raw_id.encode()).hexdigest(), 16) % 10**8
         return raw_id
+
+
+import re
+from typing import Union
+
+def resolve_conditional_text(text: str, flags: Union[list, set]) -> str:
+    if not text:
+        return ""
+    # Innermost-first regex matching for nested tags
+    pattern = re.compile(r'\{IF\s+([A-Za-z0-9_:]+)\}((?:(?!\{IF\s+).)*?)(?:\{ELSE\}((?:(?!\{IF\s+).)*?))?\{END\}', re.DOTALL)
+    
+    def replace(match):
+        flag = match.group(1)
+        if_content = match.group(2)
+        else_content = match.group(3) or ""
+        
+        if flags and flag in flags:
+            return if_content
+        else:
+            return else_content
+            
+    # Loop to resolve nested tags
+    old_text = ""
+    while old_text != text:
+        old_text = text
+        text = pattern.sub(replace, text)
+        
+    return text

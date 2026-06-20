@@ -142,7 +142,7 @@ async def start_solo_interaction_with_perspective(
     points = session["points"]
     round_number = session["round"]
 
-    embed = EmbedBuilder.solo_scene_embed(scene, round_number, story.title, points)
+    embed = EmbedBuilder.solo_scene_embed(scene, round_number, story.title, points, session.get("flags"))
     view = None
     if not scene.is_ending and scene.choices:
         view = SoloView(cog.solo_manager, interaction.user.id, scene.choices)

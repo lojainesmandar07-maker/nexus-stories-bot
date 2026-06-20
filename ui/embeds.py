@@ -186,7 +186,7 @@ class EmbedBuilder:
         return embed
 
     @staticmethod
-    def solo_scene_embed(scene: Scene, round_number: int, story_title: str, points: int) -> discord.Embed:
+    def solo_scene_embed(scene: Scene, round_number: int, story_title: str, points: int, flags: set = None) -> discord.Embed:
         color = discord.Color.dark_theme() if scene.is_ending else discord.Color.purple()
 
         display_title = scene.title
@@ -194,9 +194,12 @@ class EmbedBuilder:
         if not display_title or display_title == scene.id or any(display_title.startswith(prefix) for prefix in ("node_", "ending_")) or display_title == "start":
             display_title = "نهاية القصة" if scene.is_ending else ""
 
+        from engine.story_manager import resolve_conditional_text
+        resolved_text = resolve_conditional_text(scene.text, flags or set())
+
         embed = discord.Embed(
             title=f"الجولة {round_number}: {display_title}" if display_title else f"الجولة {round_number}",
-            description=scene.text,
+            description=resolved_text,
             color=color
         )
 

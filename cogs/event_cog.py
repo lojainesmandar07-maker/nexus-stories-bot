@@ -234,7 +234,8 @@ class RoleSelectView(discord.ui.View):
                         await self.advance_story(choice, channel, roles_at_node, source_node_id=node_id)
 
     def build_turn_embed(self, scene, session, roles_at_node=None):
-        description_text = scene.text
+        from engine.story_manager import resolve_conditional_text
+        description_text = resolve_conditional_text(scene.text, session.flags)
         if scene.asymmetric_text:
             description_text += (
                 "\n\n⚠️ **تنبيه:** يحتوي هذا المشهد على **معلومات أو مهمة سرية مخصصة لدورك!** "
@@ -312,7 +313,9 @@ class RoleSelectView(discord.ui.View):
                     solo_view.add_item(c_btn)
 
                 # Show asymmetric text for that role
-                await interaction.response.send_message(scene.get_text_for_role(target_role), view=solo_view, ephemeral=True)
+                from engine.story_manager import resolve_conditional_text
+                resolved_target_text = resolve_conditional_text(scene.get_text_for_role(target_role), session.flags)
+                await interaction.response.send_message(resolved_target_text, view=solo_view, ephemeral=True)
 
             btn.callback = open_solo_menu
             view.add_item(btn)
@@ -367,9 +370,11 @@ class RoleSelectView(discord.ui.View):
         next_scene = self.story.get_scene(choice.next_scene)
         if not next_scene or next_scene.is_ending:
             if next_scene:
+                from engine.story_manager import resolve_conditional_text
+                resolved_ending_text = resolve_conditional_text(next_scene.text, session.flags)
                 embed = discord.Embed(
                     title=next_scene.title if next_scene.title != next_scene.id else "النهاية",
-                    description=next_scene.text,
+                    description=resolved_ending_text,
                     color=discord.Color.dark_red()
                 )
                 if next_scene.image_url:
@@ -440,8 +445,10 @@ class RoleSelectView(discord.ui.View):
                     await interaction.response.send_message("❌ أنت لست لاعباً في هذا الحدث.", ephemeral=True)
                     return
                 
-                custom_text = scene.get_text_for_role(role_id)
-                if custom_text == scene.text:
+                from engine.story_manager import resolve_conditional_text
+                custom_text = resolve_conditional_text(scene.get_text_for_role(role_id), session.flags)
+                resolved_base_text = resolve_conditional_text(scene.text, session.flags)
+                if custom_text == resolved_base_text:
                     await interaction.response.send_message("لا توجد معلومات إضافية سرية لدورك في هذا المشهد.", ephemeral=True)
                 else:
                     await interaction.response.send_message(f"📜 **معلومات دورك السرية:**\n\n{custom_text}", ephemeral=True)

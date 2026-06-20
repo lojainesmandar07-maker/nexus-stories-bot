@@ -40,7 +40,7 @@ class SoloChoiceButton(discord.ui.Button):
         points = session["points"]
         round_number = session["round"]
 
-        embed = EmbedBuilder.solo_scene_embed(scene, round_number, story.title, points)
+        embed = EmbedBuilder.solo_scene_embed(scene, round_number, story.title, points, session.get("flags"))
 
         view = None
         if not scene.is_ending and scene.choices:
