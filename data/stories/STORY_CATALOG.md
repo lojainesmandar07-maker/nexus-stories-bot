@@ -56,12 +56,29 @@ This catalog lists the active stories available in the bot. All stories have bee
     *   **Node Count:** 139 nodes
     *   **Endings:** 12 endings
 
+*   **السائق الليلي** (`past_night_driver.json`)
+    *   **Theme:** رعب نفسي
+    *   **Node Count:** 47 nodes
+    *   **Endings:** 3 endings
+
+*   **صندوق البريد رقم 7** (`past_mailbox_seven.json`)
+    *   **Theme:** غموض وتجسس
+    *   **Node Count:** 46 nodes
+    *   **Endings:** 3 endings
+
+*   **آلة البينبول الأخيرة** (`past_last_pinball.json`)
+    *   **Theme:** غموض وواقعية سحرية
+    *   **Node Count:** 38 nodes
+    *   **Endings:** 3 endings
+
 ---
 
 ## 👥 Multiplayer Stories (القصص الجماعية)
 
-*   **عرش الرماد** (`multi_royal_blood.json`)
-    *   **Theme:** صراع على البقاء
-    *   **Node Count:** 34 nodes
-    *   **Endings:** 6 endings
+*   **القلعة المحاصرة: خيانة في الداخل** (`multi_besieged_fortress.json`)
+    *   **Theme:** غموض
+    *   **Node Count:** 39 nodes
+    *   **Endings:** 4 endings
+
+
 

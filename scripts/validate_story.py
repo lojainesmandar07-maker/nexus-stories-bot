@@ -486,6 +486,34 @@ def validate_story(filepath: str, warn_only: bool = False) -> ValidationResult:
             if rf:
                 all_requires.add(rf)
 
+    # Extract flags from inline conditionals {IF flag} in texts
+    if_pattern = _re.compile(r'\{IF\s+([A-Za-z0-9_:]+)\}')
+    for nk, nd in nodes.items():
+        text_raw = nd.get("text", "")
+        texts_to_check = []
+        if isinstance(text_raw, str):
+            texts_to_check.append(text_raw)
+        elif isinstance(text_raw, dict):
+            if isinstance(text_raw.get("default"), str):
+                texts_to_check.append(text_raw["default"])
+            asym = text_raw.get("asymmetric", {})
+            if isinstance(asym, dict):
+                for r_val in asym.values():
+                    if isinstance(r_val, str):
+                        texts_to_check.append(r_val)
+        
+        npc_dialogues = nd.get("npc_dialogues", {})
+        if isinstance(npc_dialogues, dict):
+            for r_id, d_map in npc_dialogues.items():
+                if isinstance(d_map, dict):
+                    for diag_text in d_map.values():
+                        if isinstance(diag_text, str):
+                            texts_to_check.append(diag_text)
+
+        for text in texts_to_check:
+            for flag in if_pattern.findall(text):
+                all_requires.add(flag)
+
     orphan_set   = all_sets - all_requires
     orphan_req   = all_requires - all_sets
 
