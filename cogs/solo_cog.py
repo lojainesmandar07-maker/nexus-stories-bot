@@ -221,6 +221,43 @@ async def handle_story_end(
         print(f"[SoloCog] Failed to send ending share prompt: {e}")
 
 
+class LibraryChoiceView(discord.ui.View):
+    def __init__(self, bot):
+        super().__init__(timeout=180)
+        self.bot = bot
+
+    @discord.ui.button(label="👤 القصص الفردية", style=discord.ButtonStyle.primary, custom_id="choice_solo_lib")
+    async def choice_solo_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        stories = self.bot.story_manager.get_stories_by_mode("single")
+        categories = {}
+        for story in stories.values():
+            theme = story.theme or "عام"
+            if theme not in categories:
+                categories[theme] = []
+            categories[theme].append(story)
+
+        view = SoloLibraryView(categories)
+        embed = view.render_embed()
+        await interaction.response.edit_message(embed=embed, view=view)
+        view.message = interaction.message
+
+    @discord.ui.button(label="👥 الفعاليات الجماعية", style=discord.ButtonStyle.success, custom_id="choice_multi_lib")
+    async def choice_multi_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        stories = self.bot.story_manager.get_stories_by_mode("multi")
+        categories = {}
+        for story in stories.values():
+            theme = story.theme or "عام"
+            if theme not in categories:
+                categories[theme] = []
+            categories[theme].append(story)
+
+        from ui.listing_view import MultiLibraryView
+        view = MultiLibraryView(categories)
+        embed = view.render_embed()
+        await interaction.response.edit_message(embed=embed, view=view)
+        view.message = interaction.message
+
+
 class SoloCog(commands.Cog):
     def __init__(self, bot: StoryBot):
         self.bot = bot
@@ -259,6 +296,32 @@ class SoloCog(commands.Cog):
     @app_commands.autocomplete(story_ref=story_ref_autocomplete)
     async def play_solo(self, interaction: discord.Interaction, story_ref: str):
         await start_solo_interaction_with_perspective(interaction, story_ref)
+
+    @app_commands.command(name="قصص", description="عرض مكتبة قصص The Nexus")
+    async def show_stories_menu(self, interaction: discord.Interaction):
+        embed = discord.Embed(
+            title="📚 مكتبة القصص — The Nexus",
+            description="مرحباً بك في مكتبة القصص التفاعلية لـ The Nexus.\nاختر نوع القصص التي ترغب في استكشافها وتصفحها:",
+            color=discord.Color.blue()
+        )
+        view = LibraryChoiceView(self.bot)
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+        view.message = await interaction.original_response()
+
+    @app_commands.command(name="قصص_فردية", description="تصفح مكتبة القصص الفردية المتاحة")
+    async def list_solo_stories(self, interaction: discord.Interaction):
+        stories = self.bot.story_manager.get_stories_by_mode("single")
+        categories = {}
+        for story in stories.values():
+            theme = story.theme or "عام"
+            if theme not in categories:
+                categories[theme] = []
+            categories[theme].append(story)
+
+        view = SoloLibraryView(categories)
+        embed = view.render_embed()
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+        view.message = await interaction.original_response()
 
 
 async def setup(bot: StoryBot):

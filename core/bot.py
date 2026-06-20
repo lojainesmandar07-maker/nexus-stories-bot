@@ -75,8 +75,24 @@ class StoryBot(commands.Bot):
             WorldSelectView,
         )
 
-        self.add_view(SoloLibraryView({}, timeout=None))
-        self.add_view(MultiLibraryView({}, timeout=None))
+        stories_single = self.story_manager.get_stories_by_mode("single")
+        categories_single = {}
+        for story in stories_single.values():
+            theme = story.theme or "عام"
+            if theme not in categories_single:
+                categories_single[theme] = []
+            categories_single[theme].append(story)
+
+        stories_multi = self.story_manager.get_stories_by_mode("multi")
+        categories_multi = {}
+        for story in stories_multi.values():
+            theme = story.theme or "عام"
+            if theme not in categories_multi:
+                categories_multi[theme] = []
+            categories_multi[theme].append(story)
+
+        self.add_view(SoloLibraryView(categories_single, timeout=None))
+        self.add_view(MultiLibraryView(categories_multi, timeout=None))
 
         # Register world-browser persistent handlers once.
         self._world_browser_router = WorldBrowserPersistentRouter()

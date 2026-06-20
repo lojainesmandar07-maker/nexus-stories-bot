@@ -244,10 +244,6 @@ class StartEventButton(discord.ui.Button):
             return
 
         bot = interaction.client
-        if bot.event_manager.active_event:
-            await interaction.response.send_message("❌ يوجد حدث نشط حالياً. أوقفه ثم أعد المحاولة.", ephemeral=True)
-            return
-
         story = bot.story_manager.resolve_story(self.parent_view.selected_story_id, game_mode="multi")
         if not story or story.game_mode != "multi":
             await interaction.response.send_message("❌ القصة المختارة غير متاحة كحدث جماعي.", ephemeral=True)
@@ -257,11 +253,37 @@ class StartEventButton(discord.ui.Button):
             await interaction.response.send_message("❌ لا يمكن تشغيل الحدث هنا.", ephemeral=True)
             return
 
-        await interaction.response.send_message(
-            f"✅ سيتم بدء الحدث الآن: **{story.title}**\n⏱️ زمن التصويت: 30 ثانية.",
-            ephemeral=True,
-        )
-        bot.loop.create_task(bot.event_manager.start_event(interaction.channel, story.id, voting_timeout=30.0))
+        # Connect to new MultiplayerManager if available
+        if hasattr(bot, 'multiplayer_manager'):
+            existing_session = bot.multiplayer_manager.get_session_by_channel(interaction.channel.id)
+            if existing_session:
+                await interaction.response.send_message("❌ يوجد حدث نشط حالياً في هذه القناة. أوقفه عبر `/إيقاف` ثم أعد المحاولة.", ephemeral=True)
+                return
+
+            await interaction.response.send_message("✅ تم بدء حدث القصة بنجاح في القناة.", ephemeral=True)
+            
+            session_id = bot.multiplayer_manager.create_session(
+                channel_id=interaction.channel.id,
+                story_id=str(story.id),
+                host_id=str(interaction.user.id)
+            )
+            from cogs.event_cog import RoleSelectView
+            view = RoleSelectView(bot, session_id, story)
+            embed = discord.Embed(
+                title=f"غرفة الانتظار: {story.title}",
+                description="اللاعبون المنضمون:\nلا أحد بعد.",
+                color=discord.Color.gold()
+            )
+            await interaction.channel.send(embed=embed, view=view)
+        else:
+            if bot.event_manager.active_event:
+                await interaction.response.send_message("❌ يوجد حدث نشط حالياً. أوقفه ثم أعد المحاولة.", ephemeral=True)
+                return
+            await interaction.response.send_message(
+                f"✅ سيتم بدء الحدث الآن: **{story.title}**\n⏱️ زمن التصويت: 30 ثانية.",
+                ephemeral=True,
+            )
+            bot.loop.create_task(bot.event_manager.start_event(interaction.channel, story.id, voting_timeout=30.0))
 
 
 class SoloLibraryView(BaseLibraryView):

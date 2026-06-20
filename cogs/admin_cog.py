@@ -28,6 +28,8 @@ class AdminCog(commands.Cog):
         app_commands.Choice(name="الماضي", value="past"),
         app_commands.Choice(name="المستقبل", value="future"),
         app_commands.Choice(name="الواقع البديل", value="alternate"),
+        app_commands.Choice(name="القصص الفردية", value="solo"),
+        app_commands.Choice(name="قصص جماعية", value="multi"),
     ]
     MODE_CHOICES = [
         app_commands.Choice(name="فردي", value="single"),

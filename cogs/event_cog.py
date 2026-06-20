@@ -477,5 +477,24 @@ class EventCog(commands.Cog):
         self.bot.multiplayer_manager.end_session(session.session_id)
         await interaction.response.send_message("✅ تم إيقاف الحدث الجماعي.", ephemeral=False)
 
+    @app_commands.command(name="قصص_جماعية", description="تصفح مكتبة القصص الجماعية المتاحة")
+    @app_commands.default_permissions(manage_guild=True)
+    @app_commands.checks.has_permissions(manage_guild=True)
+    async def list_multi_stories(self, interaction: discord.Interaction):
+        stories = self.bot.story_manager.get_stories_by_mode("multi")
+        categories = {}
+        for story in stories.values():
+            theme = story.theme or "عام"
+            if theme not in categories:
+                categories[theme] = []
+            categories[theme].append(story)
+
+        from ui.listing_view import MultiLibraryView
+        view = MultiLibraryView(categories)
+        embed = view.render_embed()
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+        view.message = await interaction.original_response()
+
+
 async def setup(bot: StoryBot):
     await bot.add_cog(EventCog(bot))
