@@ -293,8 +293,8 @@ class MultiplayerManager:
             if not scene:
                 continue
 
-            # NPC acts if it's a group decision or their assigned solo decision
-            if scene.type == "group_decision" or (scene.type == "solo_decision" and scene.assigned_to == role_id):
+            # NPC acts if it's a group decision (any non-solo decision with choices) or their assigned solo decision
+            if scene.choices and not getattr(scene, "is_ending", False) and (scene.type != "solo_decision" or scene.assigned_to == role_id):
                 # Check if NPC has already voted
                 votes = self.session_votes.get(session_id, {})
                 if role_id in votes and votes[role_id].node_id == current_node_id:

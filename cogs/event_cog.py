@@ -216,22 +216,22 @@ class RoleSelectView(discord.ui.View):
         if not scene:
             return
 
-            if scene.type == "solo_decision":
-                # Pick a random choice for solo decision if none made
-                await channel.send("⏳ انتهى الوقت المخصص لاتخاذ القرار الفردي! تم اختيار خيار عشوائي للاستمرار.")
+        if scene.type == "solo_decision":
+            # Pick a random choice for solo decision if none made
+            await channel.send("⏳ انتهى الوقت المخصص لاتخاذ القرار الفردي! تم اختيار خيار عشوائي للاستمرار.")
+            if scene.choices:
+                choice = random.choice(scene.choices)
+                await self.apply_decision(choice, scene.assigned_to, channel, source_node_id=node_id)
+        else:
+            # Group decision
+            if votes:
+                await channel.send("⏳ انتهى وقت التصويت! سيتم اعتماد الأصوات الحالية.")
+                await self.resolve_group(channel, scene, roles_at_node)
+            else:
+                await channel.send("⏳ انتهى وقت التصويت ولم يصوت أحد! تم اختيار خيار عشوائي للاستمرار.")
                 if scene.choices:
                     choice = random.choice(scene.choices)
-                    await self.apply_decision(choice, scene.assigned_to, channel, source_node_id=node_id)
-            else:
-                # Group decision
-                if votes:
-                    await channel.send("⏳ انتهى وقت التصويت! سيتم اعتماد الأصوات الحالية.")
-                    await self.resolve_group(channel, scene, roles_at_node)
-                else:
-                    await channel.send("⏳ انتهى وقت التصويت ولم يصوت أحد! تم اختيار خيار عشوائي للاستمرار.")
-                    if scene.choices:
-                        choice = random.choice(scene.choices)
-                        await self.advance_story(choice, channel, roles_at_node, source_node_id=node_id)
+                    await self.advance_story(choice, channel, roles_at_node, source_node_id=node_id)
 
     def build_turn_embed(self, scene, session, roles_at_node=None):
         from engine.story_manager import resolve_conditional_text
