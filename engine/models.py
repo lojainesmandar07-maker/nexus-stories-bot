@@ -11,6 +11,7 @@ class Role:
 class Vote:
     player_id: str
     choice_index: int
+    node_id: str = ""
 
 @dataclass
 class MultiplayerSession:
@@ -51,6 +52,7 @@ class Scene:
     is_convergence: bool = False
     npc_dialogues: Dict[str, Dict[str, str]] = field(default_factory=dict)
     asymmetric_text: Optional[Dict[str, str]] = None
+    voting_timeout: Optional[float] = None
 
     def get_text_for_role(self, role_id: Optional[str]) -> str:
         if self.asymmetric_text and role_id and role_id in self.asymmetric_text:
@@ -83,6 +85,7 @@ class Story:
     min_players: int = 1
     max_players: int = 1
     roles: Dict[str, Role] = field(default_factory=dict)
+    voting_timeout: Optional[float] = None
 
     def get_scene(self, scene_id: str) -> Optional[Scene]:
         return self.scenes.get(scene_id)

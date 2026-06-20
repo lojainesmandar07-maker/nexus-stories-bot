@@ -123,7 +123,8 @@ class StoryManager:
                     assigned_to=node_data.get("assigned_to"),
                     is_convergence=node_data.get("is_convergence", False),
                     npc_dialogues=node_data.get("npc_dialogues", {}),
-                    asymmetric_text=asymmetric_text
+                    asymmetric_text=asymmetric_text,
+                    voting_timeout=node_data.get("voting_timeout")
                 )
 
             # Extract perspectives if present
@@ -191,7 +192,8 @@ class StoryManager:
                 perspectives=perspectives,
                 min_players=data.get("min_players", 1),
                 max_players=data.get("max_players", 1),
-                roles=roles
+                roles=roles,
+                voting_timeout=data.get("voting_timeout")
             )
 
             self.stories[story.id] = story
@@ -222,7 +224,8 @@ class StoryManager:
                 text=scene_data["text"],
                 choices=choices,
                 is_ending=scene_data.get("is_ending", False),
-                image_url=scene_data.get("image_url")
+                image_url=scene_data.get("image_url"),
+                voting_timeout=scene_data.get("voting_timeout")
             )
 
         configured_start = data.get("start_scene", "start")
@@ -235,11 +238,12 @@ class StoryManager:
             theme=data.get("theme", "عام"),
             series=data.get("series", 1),
             game_mode=data.get("game_mode", "single"),
-            description=data.get("description", ""),
+            description=data.get("summary", data.get("description", "")),
             scenes=scenes,
             start_scene=configured_start,
             image_url=data.get("image_url"),
-            world_type=data.get("world_type")
+            world_type=data.get("world_type"),
+            voting_timeout=data.get("voting_timeout")
         )
 
         self.stories[story.id] = story

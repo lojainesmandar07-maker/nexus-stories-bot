@@ -88,16 +88,16 @@ async def main():
     print(f"Session started: {started}")
 
     # Vote
-    manager.register_vote(session_id, "player1", 0) # Prince wants to blow it up
+    manager.register_vote(session_id, "player1", 0, "node_entrance") # Prince wants to blow it up
     print("Player 1 voted to blow gate")
 
     # Run NPC turn
     print("Running NPC turn for spy...")
     await manager.execute_npc_turns(session_id, story, channel)
 
-    if manager.has_everyone_voted(session_id):
+    if manager.has_everyone_voted(session_id, "node_entrance"):
         print("Everyone voted! Resolving...")
-        winner_idx = manager.resolve_group_vote(session_id, story)
+        winner_idx = manager.resolve_group_vote(session_id, "node_entrance", story)
         choice = story.get_scene("node_entrance").choices[winner_idx]
         print(f"Group decided: {choice.text}")
     else:

@@ -188,7 +188,7 @@ class MultiplayerManager:
                     return u_id
         return None
 
-    def register_vote(self, session_id: str, user_id: str, choice_index: int) -> bool:
+    def register_vote(self, session_id: str, user_id: str, choice_index: int, node_id: str) -> bool:
         session = self.active_sessions.get(session_id)
         if not session or session.status != "active":
             return False
@@ -200,32 +200,51 @@ class MultiplayerManager:
         if session_id not in self.session_votes:
             self.session_votes[session_id] = {}
 
-        self.session_votes[session_id][role_id] = Vote(player_id=user_id, choice_index=choice_index)
+        self.session_votes[session_id][role_id] = Vote(player_id=user_id, choice_index=choice_index, node_id=node_id)
         self.update_activity(session_id)
         return True
 
-    def get_vote_count(self, session_id: str) -> int:
-        return len(self.session_votes.get(session_id, {}))
+    def get_vote_count(self, session_id: str, node_id: str) -> int:
+        votes = self.session_votes.get(session_id, {})
+        return sum(1 for v in votes.values() if v.node_id == node_id)
 
-    def has_everyone_voted(self, session_id: str) -> bool:
+    def has_everyone_voted(self, session_id: str, node_id: str) -> bool:
         session = self.active_sessions.get(session_id)
         if not session:
             return False
-        return self.get_vote_count(session_id) >= len(session.players)
+        return self.get_vote_count(session_id, node_id) >= len(session.players)
 
-    def resolve_group_vote(self, session_id: str, story: Story) -> Optional[int]:
+    def resolve_group_vote(self, session_id: str, node_id: str, story: Story) -> Optional[int]:
         votes = self.session_votes.get(session_id, {})
         if not votes:
             return None
 
+        # Filter votes matching node_id
+        node_votes = {rid: v for rid, v in votes.items() if v.node_id == node_id}
+        if not node_votes:
+            return None
+
         counts = {}
-        for vote in votes.values():
+        for vote in node_votes.values():
             counts[vote.choice_index] = counts.get(vote.choice_index, 0) + 1
 
         max_votes = max(counts.values())
         winners = [idx for idx, count in counts.items() if count == max_votes]
 
-        # Tie break: random (could be enhanced to prefer leader's choice)
+        if len(winners) == 1:
+            return winners[0]
+
+        # Tie-breaker logic:
+        # Check if leader_role is defined or default to first role
+        leader_role = getattr(story, "leader_role", None)
+        if not leader_role and story.roles:
+            leader_role = list(story.roles.keys())[0]
+
+        if leader_role and leader_role in node_votes:
+            leader_vote = node_votes[leader_role]
+            if leader_vote.choice_index in winners:
+                return leader_vote.choice_index
+
         return random.choice(winners)
 
     def calculate_npc_vote(self, role: Role, choices: List) -> int:
@@ -260,38 +279,106 @@ class MultiplayerManager:
         npc_roles = []
         for user_id, role_id in session.players.items():
             if self.is_npc(user_id):
-                npc_roles.append(role_id)
+                npc_roles.append((user_id, role_id))
 
         if not npc_roles:
             return
 
-        # Get arbitrary player's node as they should all be synced
-        sample_role = list(session.players.values())[0]
-        current_node_id = session.current_node_states.get(sample_role)
-        scene = story.get_scene(current_node_id)
-
-        if not scene or scene.type != "group_decision":
-            return
-
-        for role_id in npc_roles:
-            role = story.roles.get(role_id)
-            if not role:
+        for user_id, role_id in npc_roles:
+            current_node_id = session.current_node_states.get(role_id)
+            if not current_node_id:
                 continue
 
-            # Random thinking delay
-            await asyncio.sleep(random.uniform(2.0, 5.0))
+            scene = story.get_scene(current_node_id)
+            if not scene:
+                continue
 
-            choice_idx = self.calculate_npc_vote(role, scene.choices)
-            user_id = self.get_user_by_role(session_id, role_id)
-            self.register_vote(session_id, user_id, choice_idx)
+            # NPC acts if it's a group decision or their assigned solo decision
+            if scene.type == "group_decision" or (scene.type == "solo_decision" and scene.assigned_to == role_id):
+                # Check if NPC has already voted
+                votes = self.session_votes.get(session_id, {})
+                if role_id in votes and votes[role_id].node_id == current_node_id:
+                    continue
 
-            winning_choice = scene.choices[choice_idx]
+                # Random thinking delay
+                await asyncio.sleep(random.uniform(2.0, 5.0))
 
-            # Print dialogue if available
-            dialogue_map = scene.npc_dialogues.get(role_id, {})
-            dialogue = dialogue_map.get(winning_choice.next_scene)
-            if dialogue:
-                await channel.send(f"💬 {dialogue}")
+                # Re-verify session active
+                session = self.active_sessions.get(session_id)
+                if not session or session.status != "active":
+                    return
+
+                role = story.roles.get(role_id)
+                if not role:
+                    continue
+
+                choice_idx = self.calculate_npc_vote(role, scene.choices)
+                self.register_vote(session_id, user_id, choice_idx, current_node_id)
+
+                winning_choice = scene.choices[choice_idx]
+
+                dialogue_map = scene.npc_dialogues.get(role_id, {})
+                dialogue = dialogue_map.get(winning_choice.next_scene)
+                if dialogue:
+                    await self.send_npc_dialogue_via_webhook(session_id, role_id, dialogue, channel, story)
+
+    async def send_npc_dialogue_via_webhook(
+        self, session_id: str, role_id: str, dialogue: str, channel: discord.TextChannel, story: Story
+    ):
+        role = story.roles.get(role_id)
+        role_title = role.title if role else role_id
+
+        avatar_url = None
+        if role and hasattr(role, "avatar_url") and role.avatar_url:
+            avatar_url = role.avatar_url
+
+        if not hasattr(channel, "webhooks"):
+            await channel.send(f"💬 **{role_title}**: {dialogue}")
+            return
+
+        try:
+            webhooks = await channel.webhooks()
+            webhook = discord.utils.get(webhooks, name="Nexus NPC")
+            if not webhook:
+                webhook = await channel.create_webhook(name="Nexus NPC", reason="Nexus RPG NPC Dialogue")
+            
+            await webhook.send(
+                content=dialogue,
+                username=role_title,
+                avatar_url=avatar_url
+            )
+        except Exception as e:
+            print(f"[Webhook Failure] Fallback to normal send: {e}")
+            await channel.send(f"💬 **{role_title}**: {dialogue}")
+
+    async def recover_session(self, session_id: str) -> Optional[MultiplayerSession]:
+        session_data = await load_multiplayer_session(session_id)
+        if not session_data:
+            return None
+
+        session = MultiplayerSession(
+            session_id=session_id,
+            story_id=session_data["story_id"],
+            status=session_data["status"],
+            players=session_data["players"],
+            current_node_states=session_data["current_node_states"],
+            flags=session_data["flags"],
+            host_id=session_data["host_id"],
+            channel_id=session_data["channel_id"]
+        )
+
+        self.active_sessions[session_id] = session
+        self.channel_to_session[session.channel_id] = session_id
+        self.session_votes[session_id] = {}
+        self.update_activity(session_id)
+
+        if not self.cleanup_task:
+            try:
+                self.cleanup_task = asyncio.create_task(self._cleanup_loop())
+            except Exception as e:
+                print(f"Failed to start cleanup loop task: {e}")
+
+        return session
 
     async def advance_node(self, session_id: str, role_id: str, next_node_id: str, story: Story) -> bool:
         session = self.active_sessions.get(session_id)
@@ -313,9 +400,15 @@ class MultiplayerManager:
                 return True
         return False
 
-    def clear_votes(self, session_id: str):
+    def clear_votes(self, session_id: str, node_id: str = None):
         if session_id in self.session_votes:
-            self.session_votes[session_id] = {}
+            if node_id:
+                # Clear only votes for this node
+                self.session_votes[session_id] = {
+                    rid: v for rid, v in self.session_votes[session_id].items() if v.node_id != node_id
+                }
+            else:
+                self.session_votes[session_id] = {}
 
     def end_session(self, session_id: str):
         session = self.active_sessions.get(session_id)
